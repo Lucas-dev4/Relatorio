@@ -1,0 +1,28 @@
+<button class="btn-foto" onclick="document.getElementById('camera').click()">
+    📂 SELECIONAR COMPROVANTE <br>
+    <span style="font-size: 12px; font-weight: normal;">(Tirar foto ou escolher da galeria)</span>
+</button>
+
+<input type="file" id="camera" accept="image/*" style="display:none">
+
+<script>
+    // ... (mesmo código anterior) ...
+    
+    // Pequena melhoria na leitura:
+    function formatarRelatorio(bruto) {
+        // Limpa espaços duplos e quebras de linha que o OCR gera da galeria
+        const textoLimpo = bruto.replace(/\s+/g, ' ');
+
+        const valorMatch = textoLimpo.match(/(?:R\$|VALOR|TOTAL)\s?([\d.,]+)/i);
+        const valor = valorMatch ? "R$ " + valorMatch[1] : "[Valor]";
+
+        const dataMatch = textoLimpo.match(/(\d{2}\/\d{2}\/\d{4})/);
+        const data = dataMatch ? dataMatch[1] : "[Data]";
+
+        // O 'Manda' já fica fixo com o nome dele para ele não ter de escrever
+        const textoFinal = `${valor} | RECEBE: [Confirmar Nome] | MANDA: Teu Amigo | DATA: ${data}`;
+        
+        document.getElementById('resultado').innerText = textoFinal;
+        document.getElementById('btnCopiar').style.display = "block";
+    }
+</script>
