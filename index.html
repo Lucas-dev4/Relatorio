@@ -1,40 +1,48 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Relatório Francivaldo</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiples Images Upload</title>
     <style>
-        /* Configuração Base - Garante que tudo fique centralizado */
-        * { box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #f0f2f5; 
-            margin: 0; 
-            padding: 0; 
-            display: flex; 
-            justify-content: center; /* Centraliza horizontalmente */
-            align-items: center;     /* Centraliza verticalmente */
-            min-height: 100vh;       /* Ocupa toda a altura da tela */
+        body { font-family: Arial, sans-serif; }
+        input[type='file'] { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Upload Multiple Images</h1>
+    <form id="uploadForm">
+        <label for="imageUpload" class="upload-label">Choose Images</label>
+        <input type="file" id="imageUpload" name="images" multiple accept="image/*" onchange="previewImages()">
+        <div id="previewContainer"></div>
+        <button type="submit">Upload Images</button>
+    </form>
+
+    <script>
+        function previewImages() {
+            const previewContainer = document.getElementById('previewContainer');
+            previewContainer.innerHTML = '';
+            const files = document.getElementById('imageUpload').files;
+            for (let i = 0; i < files.length; i++) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = '100px';
+                    img.style.margin = '10px';
+                    previewContainer.appendChild(img);
+                }
+                reader.readAsDataURL(files[i]);
+            }
         }
 
-        /* O Cartão Principal */
-        .card { 
-            background: white; 
-            border-radius: 20px; 
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15); 
-            padding: 30px; 
-            width: 90%; 
-            max-width: 400px; 
-            text-align: center; 
-        }
-
-        h2 { color: #1c1e21; margin-top: 0; margin-bottom: 25px; font-size: 22px; }
-
-        /* Botão Azul Gigante (Centralizado no Cartão) */
+        document.getElementById('uploadForm').onsubmit = function(e) {
+            e.preventDefault(); // Prevent form submission
+            // Implement batch upload logic here
+        };
+    </script>
+</body>
+</html>        /* Botão Azul Gigante (Centralizado no Cartão) */
         .btn-foto { 
             background-color: #007bff; 
             color: white; 
