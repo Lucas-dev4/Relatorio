@@ -3,37 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Relatório Francivaldo</title>
-    
+    <title>Relator de Recibos</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-    
     <style>
-        /* Configuração Base - Garante que tudo fique centralizado */
-        * { box-sizing: border-box; }
         body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #f0f2f5; 
-            margin: 0; 
-            padding: 0; 
-            display: flex; 
-            justify-content: center; /* Centraliza horizontalmente */
-            align-items: center;     /* Centraliza verticalmente */
-            min-height: 100vh;       /* Ocupa toda a altura da tela */
+            font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; 
+            margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; 
         }
-
-        /* O Cartão Principal */
         .card { 
-            background: white; 
-            border-radius: 20px; 
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15); 
-            padding: 30px; 
-            width: 90%; 
-            max-width: 400px; 
-            text-align: center; 
+            background: white; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); 
+            padding: 25px; width: 92%; max-width: 450px; text-align: center; 
+        }
+        .btn-foto { 
+            background-color: #007bff; color: white; padding: 20px; border-radius: 15px; 
+            font-weight: bold; font-size: 18px; border: none; width: 100%; cursor: pointer;
+        }
+        #status { margin-top: 15px; font-weight: bold; color: #65676b; }
+        #resultado { 
+            background: #e7f3ff; color: #003d99; padding: 15px; border-radius: 10px; 
+            font-size: 15px; border: 1px solid #c2e0ff; font-weight: bold; margin-top: 15px;
+            text-align: left; white-space: pre-wrap; word-break: break-all;
+        }
+        .btn-copiar { 
+            background-color: #28a745; color: white; padding: 15px; border-radius: 12px; 
+            font-size: 17px; font-weight: bold; border: none; width: 100%; margin-top: 15px; cursor: pointer;
+        }
+        .loading { color: #ff9800; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Relatório de Comprovante</h2>
+    <button class="btn-foto" onclick="document.getElementById('camera').click()">
+        📸 SELECIONAR COMPROVANTE
+    </button>
+    <input type="file" id="camera" accept="image/*" style="display:none">
+
+    <div id="status"></div>
+    <div id="areaResultado" style="display:none">
+        <div id="resultado"></div>
+        <button class="btn-copiar" onclick="copiarTexto()">📋 COPIAR TEXTO</button>
+    </div>
+</div>
+
+<script>
+    const input = document.getElementById('camera');
+    const status = document.getElementById('status');
+    const resultado = document.getElementById('resultado');
+    const areaResultado = document.getElementById('areaResultado');
+
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        status.innerHTML = "<span class='loading'>Lendo imagem...</span>";
+        areaResultado.style.display = "none";
+
+        Tesseract.recognize(file, 'por').then(({ data: { text } }) => {
+            status.innerText = "";
+            processarTexto(text);
+        }).catch(() => {
+            status.innerText = "Erro ao ler. Tente uma foto mais nítida.";
+        });
+    };
+
+    function processarTexto(bruto) {
+        // Limpeza básica para facilitar a busca
+        const linhas = bruto.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+        const textoCorrido = linhas.join(' ');
+
+        // 1. Busca de Valor (Melhorada para pegar números após R$, Total ou isolados com vírgula)
+        const regexValor = /(?:R\$|VALOR|TOTAL|PAGO)\s?([\d.,]+)/i;
+        const matchValor = textoCorrido.match(regexValor);
+        let valor = matchValor ? "R$ " + matchValor[1] : "Valor não encontrado";
+
+        // 2. Busca de Data
+        const regexData = /(\d{2}\/\d{2}\/\d{4})/;
+        const data = textoCorrido.match(regexData) ? textoCorrido.match(regexData)[1] : "Data não encontrada";
+
+        // 3. Lógica para Nomes (Busca por palavras-chave próximas)
+        let recebe = "Não identificado";
+        let manda = "Não identificado";
+
+        for (let i = 0; i < linhas.length; i++) {
+            const linha = linhas[i].toUpperCase();
+            
+            // Tenta achar quem RECEBE (Favorecido, Destinatário, Para:)
+            if (linha.includes("FAVORECIDO") || linha.includes("DESTINATÁRIO") || linha.includes("RECEBEDOR") || linha.includes("PARA:")) {
+                recebe = linhas[i+1] || linhas[i].split(':').pop();
+            }
+            
+            // Tenta achar quem MANDA (Pagador, Origem, De:)
+            if (linha.includes("PAGADOR") || linha.includes("ORIGEM") || linha.includes("DE:") || linha.includes("NOME DO CLIENTE")) {
+                manda = linhas[i+1] || linhas[i].split(':').pop();
+            }
         }
 
-        h2 { color: #1c1e21; margin-top: 0; margin-bottom: 25px; font-size: 22px; }
+        // Limpeza final dos nomes (remover caracteres estranhos)
+        const limpar = (t) => t.replace(/[:\-]/g, '').trim();
 
+        const textoFinal = `${valor} | RECEBE: ${limpar(recebe)} | MANDA: ${limpar(manda)} | DATA: ${data}`;
+        
+        resultado.innerText = textoFinal;
+        areaResultado.style.display = "block";
+    }
+
+    function copiarTexto() {
+        navigator.clipboard.writeText(resultado.innerText);
+        alert("Copiado com sucesso!");
+    }
+</script>
+</body>
+</html>
         /* Botão Azul Gigante (Centralizado no Cartão) */
         .btn-foto { 
             background-color: #007bff; 
