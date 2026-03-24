@@ -30,6 +30,7 @@
         }
         .loading { color: #ff9800; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
+        .sucesso { color: #28a745; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -75,15 +76,16 @@
         const textoCorrido = linhas.join(' ');
 
         // 1. Busca de Valor (Melhorada para pegar números após R$, Total ou isolados com vírgula)
-        const regexValor = /(?:R\$|VALOR|TOTAL|PAGO)\s?([\d.,]+)/i;
+        const regexValor = /(?:R\$|VALOR|TOTAL|PAGO)\s*([\d.,]+)/i;
         const matchValor = textoCorrido.match(regexValor);
         let valor = matchValor ? "R$ " + matchValor[1] : "Valor não encontrado";
 
-        // 2. Busca de Data
+        // 2. Busca de Data - CORRIGIDO: executar uma única vez
         const regexData = /(\d{2}\/\d{2}\/\d{4})/;
-        const data = textoCorrido.match(regexData) ? textoCorrido.match(regexData)[1] : "Data não encontrada";
+        const matchData = textoCorrido.match(regexData);
+        const data = matchData ? matchData[1] : "Data não encontrada";
 
-        // 3. Lógica para Nomes (Busca por palavras-chave próximas)
+        // 3. Lógica para Nomes (Busca por palavras-chave próximas) - CORRIGIDO: melhor tratamento
         let recebe = "Não identificado";
         let manda = "Não identificado";
 
@@ -91,13 +93,35 @@
             const linha = linhas[i].toUpperCase();
             
             // Tenta achar quem RECEBE (Favorecido, Destinatário, Para:)
-            if (linha.includes("FAVORECIDO") || linha.includes("DESTINATÁRIO") || linha.includes("RECEBEDOR") || linha.includes("PARA:")) {
-                recebe = linhas[i+1] || linhas[i].split(':').pop();
+            if (linha.includes("FAVORECIDO") || linha.includes("DESTINATÁRIO") || linha.includes("RECEBEDOR") || linha.includes("PARA")) {
+                // Busca a próxima linha que não seja vazia
+                for (let j = i + 1; j < linhas.length && j < i + 3; j++) {
+                    if (linhas[j].trim().length > 2 && !linhas[j].match(/^\d/)) {
+                        recebe = linhas[j];
+                        break;
+                    }
+                }
+                // Fallback: pega após os dois-pontos
+                if (recebe === "Não identificado") {
+                    const partes = linhas[i].split(':');
+                    if (partes.length > 1) recebe = partes[1].trim();
+                }
             }
             
             // Tenta achar quem MANDA (Pagador, Origem, De:)
             if (linha.includes("PAGADOR") || linha.includes("ORIGEM") || linha.includes("DE:") || linha.includes("NOME DO CLIENTE")) {
-                manda = linhas[i+1] || linhas[i].split(':').pop();
+                // Busca a próxima linha que não seja vazia
+                for (let j = i + 1; j < linhas.length && j < i + 3; j++) {
+                    if (linhas[j].trim().length > 2 && !linhas[j].match(/^\d/)) {
+                        manda = linhas[j];
+                        break;
+                    }
+                }
+                // Fallback: pega após os dois-pontos
+                if (manda === "Não identificado") {
+                    const partes = linhas[i].split(':');
+                    if (partes.length > 1) manda = partes[1].trim();
+                }
             }
         }
 
@@ -111,8 +135,18 @@
     }
 
     function copiarTexto() {
-        navigator.clipboard.writeText(resultado.innerText);
-        alert("Copiado com sucesso!");
+        navigator.clipboard.writeText(resultado.innerText).then(() => {
+            const btn = event.target;
+            const textoBkp = btn.innerText;
+            btn.innerText = "✓ Copiado!";
+            btn.style.backgroundColor = "#28a745";
+            setTimeout(() => {
+                btn.innerText = textoBkp;
+                btn.style.backgroundColor = "#28a745";
+            }, 2000);
+        }).catch(() => {
+            alert("Erro ao copiar. Tente novamente.");
+        });
     }
 </script>
 </body>
