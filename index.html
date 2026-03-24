@@ -1,1 +1,43 @@
-<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Date Extraction Improvement</title>\n</head>\n<body>\n    <h1>Date Extraction Improvements</h1>\n    <script>\n        function extractDates(text) {\n            const regex = /\b(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}|\d{4}[\/-]\d{1,2}[\/-]\d{1,2})\b/g;\n            return text.match(regex);\n        }\n\n        // Example usage with a Brazilian bank statement\n        const statement = "A conta foi debitada no dia 24/03/2026 e creditada no dia 25-03-2026.";\n        console.log(extractDates(statement)); // Output: [ '24/03/2026', '25-03-2026' ]\n    <\/script>\n</body>\n</html>\n
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt OCR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/2.1.1/tesseract.min.js"></script>
+</head>
+<body>
+    <h1>OCR Receipt Reader</h1>
+    <input type="file" id="file-input" accept="image/*">
+    <div id="output"></div>
+
+    <script>
+        document.getElementById('file-input').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                Tesseract.recognize(
+                    file,
+                    'eng',
+                    { logger: info => console.log(info) }
+                ).then(({ data: { text } }) => {
+                    // Extracting sender, receiver, value, and date from the text
+                    const lines = text.split('\n');
+                    let sender = '', receiver = '', value = '', date = '';
+                    lines.forEach(line => {
+                        if (line.toLowerCase().includes('sender:')) {
+                            sender = line.split(':')[1].trim();
+                        } else if (line.toLowerCase().includes('receiver:')) {
+                            receiver = line.split(':')[1].trim();
+                        } else if (line.toLowerCase().includes('value:')) {
+                            value = line.split(':')[1].trim();
+                        } else if (line.toLowerCase().includes('date:')) {
+                            date = line.split(':')[1].trim();
+                        }
+                    });
+                    document.getElementById('output').innerHTML = `<p>Sender: ${sender}</p><p>Receiver: ${receiver}</p><p>Value: ${value}</p><p>Date: ${date}</p>`;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
